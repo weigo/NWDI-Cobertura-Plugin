@@ -1,15 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="cobertura-project" default="cobertura-$vendor~$component">
-  <taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
-  
   <property name="instrumented.dir" value="$componentBase/gen/instrumented-classes" />
   <property name="classes.dir" value="$classesDir" />
-
-  <path id="cobertura.classpath">
-    <fileset dir="${cobertura.dir}">
-      <include name="cobertura.jar" />
-    </fileset>
-  </path>
+  <property name="log.dir" value="$componentBase/gen/default/logs" />
 
   <path id="classpath-$vendor~$component">
 #foreach($path in $classpaths)
@@ -20,7 +13,7 @@
   </path>
 
   <target name="instrument-$vendor~$component">
-    <delete file="cobertura.ser" />
+    <delete file="${log.dir}/cobertura.ser" />
     <delete dir="${instrumented.dir}" />
     <mkdir dir="${instrumented.dir}" />
     
@@ -33,12 +26,12 @@
   </target>
   
   <target name="run-tests-$vendor~$component">
-    <junit fork="yes" dir="${basedir}" failureProperty="test.failed">
+    <junit fork="yes" dir="$componentBase" failureProperty="test.failed" timout="${junit.timeout}">
 	<!--
 		Specify the name of the coverage data file to use.
 		The value specified below is the default.
 	-->
-	  <sysproperty key="net.sourceforge.cobertura.datafile"	file="${basedir}/cobertura.ser" />
+	  <sysproperty key="net.sourceforge.cobertura.datafile"	file="${log.dir}/cobertura.ser" />
 
 	<!--
 		Note the classpath order: instrumented classes are before the
@@ -55,7 +48,7 @@
       <classpath refid="cobertura.classpath" />
 
       <formatter type="xml" />
-      <batchtest todir="${basedir}" unless="testcase">
+      <batchtest todir="${log.dir}">
 #foreach($source in $sources)
         <fileset dir="$source">
           <include name="**/*Test.java" />
@@ -66,7 +59,7 @@
   </target>
   
   <target name="cobertura-report-$vendor~$component">
-    <cobertura-report format="xml" destdir="${basedir}" >
+    <cobertura-report format="xml" destdir="${log.dir}" >
 #foreach($source in $sources)
         <fileset dir="$source">
           <include name="**/*.java" />
