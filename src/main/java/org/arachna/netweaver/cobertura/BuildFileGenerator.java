@@ -11,7 +11,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -157,14 +156,13 @@ public final class BuildFileGenerator {
      */
     Context createContext(DevelopmentComponent component) {
         Context context = new VelocityContext();
-        Set<String> excludes = new HashSet<String>();
 
         context.put("vendor", component.getVendor());
         context.put("component", component.getName().replace('/', '~'));
         context.put("componentBase", this.antHelper.getBaseLocation(component));
         context.put("classpaths", antHelper.createClassPath(component));
         context.put("classesDir", component.getOutputFolder());
-        context.put("sources", antHelper.createSourceFileSets(component, excludes, excludes));
+        context.put("sources", antHelper.createSourceFileSets(component));
 
         return context;
     }
