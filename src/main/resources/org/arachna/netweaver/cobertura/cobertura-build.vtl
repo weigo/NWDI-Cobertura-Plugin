@@ -26,7 +26,7 @@
   </target>
   
   <target name="run-tests-$vendor~$component">
-    <junit fork="yes" dir="$componentBase" failureProperty="test.failed" timout="${junit.timeout}">
+    <junit fork="yes" dir="$componentBase" failureProperty="test.failed" timout="${junit.timeout}" includeantruntime="no">
 	<!--
 		Specify the name of the coverage data file to use.
 		The value specified below is the default.
