@@ -3,6 +3,7 @@
  */
 package org.arachna.netweaver.cobertura;
 
+import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
@@ -37,12 +38,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     /**
      * descriptor for this builder.
      */
+    @Extension(ordinal = 1000)
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     /**
      * timeout for running junit tasks.
      */
-    private int junitTimeOut = 2;
+    private int junitTimeOut = 2000;
 
     /**
      * Create a new instance of a <code></code> using the given timeout for
@@ -93,11 +95,14 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         boolean result = false;
         final Context context = new VelocityContext();
         context.put("buildFiles", buildFiles);
+        context.put("junitTimeout", junitTimeOut);
+        context.put("coberturaDir", String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib",
+            Hudson.getInstance().root.getAbsolutePath().replace("\\", "/")));
         final StringWriter masterBuildFile = new StringWriter();
 
         try {
-            velocityEngine
-                .evaluate(context, masterBuildFile, "", getTemplateReader("org/arachna/netweaver/cobertura/"));
+            velocityEngine.evaluate(context, masterBuildFile, "",
+                getTemplateReader("/org/arachna/netweaver/cobertura/cobertura-build-all.vtl"));
             result = true;
             nwdiBuild.getWorkspace().child("cobertura-all.xml").write(masterBuildFile.toString(), "UTF-8");
         }
@@ -125,8 +130,9 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     @Override
     protected String getAntProperties() {
-        return String.format("cobertura.dir=%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib junit.timeout=%d",
-            Hudson.getInstance().root.getAbsolutePath().replace("\\", "/"), junitTimeOut);
+//        return String.format("cobertura.dir=%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root
+//            .getAbsolutePath().replace("\\", "/"));
+        return "";
     }
 
     /**

@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="cobertura-project" default="cobertura-all">
+  <property name="junit.timeout" value="$junitTimeout" />
+  
   <path id="cobertura.path">
-    <fileset dir="${cobertura.dir}">
+    <fileset dir="$coberturaDir">
      <include name="*.jar" />
     </fileset>
   </path>
-  <taskdef resource="cobertura.properties" classpathref="cobertura.path" />
+  <taskdef resource="tasks.properties" classpathref="cobertura.path" />
 
   <target name="cobertura-all">
     <echo>Running cobertura...</echo>
-      #foreach ( $buildFile in $buildFiles )
-      <ant antfile="$buildFile" />
-      #end
+#foreach ( $buildFile in $buildFiles )
+      <ant inheritRefs="true" antfile="$buildFile" />
+#end
   </target>
 </project>

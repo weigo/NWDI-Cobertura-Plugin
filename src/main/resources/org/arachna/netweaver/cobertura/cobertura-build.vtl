@@ -26,7 +26,7 @@
   </target>
   
   <target name="run-tests-$vendor~$component">
-    <junit fork="yes" dir="$componentBase" failureProperty="test.failed" timout="${junit.timeout}">
+    <junit fork="yes" dir="$componentBase" failureProperty="test.failed" timeout="${junit.timeout}">
 	<!--
 		Specify the name of the coverage data file to use.
 		The value specified below is the default.
@@ -45,7 +45,8 @@
 		Cobertura runtime, so Cobertura and its dependencies
 		must be on your classpath.
 	-->
-      <classpath refid="cobertura.classpath" />
+      <classpath refid="cobertura.path" />
+      <classpath refid="classpath-$vendor~$component" />
 
       <formatter type="xml" />
       <batchtest todir="${log.dir}">

@@ -13,6 +13,7 @@ import org.arachna.netweaver.dc.types.DevelopmentComponent;
 import org.arachna.netweaver.dc.types.DevelopmentComponentFactory;
 import org.arachna.netweaver.dc.types.PublicPart;
 import org.arachna.netweaver.dc.types.PublicPartReference;
+import org.arachna.netweaver.dc.types.PublicPartType;
 import org.custommonkey.xmlunit.XMLTestCase;
 import org.custommonkey.xmlunit.exceptions.XpathException;
 import org.junit.After;
@@ -78,7 +79,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
         dcFactory = new DevelopmentComponentFactory();
         AntHelper antHelper = new AntHelper(WORKSPACE, dcFactory);
 
-        PublicPart apiPublicPart = new PublicPart("api", "", "");
+        PublicPart apiPublicPart = new PublicPart("api", "", "", PublicPartType.COMPILE);
         sapComSecurityApi =
             this.dcFactory.create("sap.com", "sap.com.security.api.sda", new PublicPart[] { apiPublicPart },
                 new PublicPartReference[] {});
@@ -133,7 +134,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testClasspathId() {
-        this.assertXPathResult("classpath-example.org~lib~dc1", "/project/path[2]/@id");
+        this.assertXPathResult("classpath-example.org~lib~dc1", "/project/path[1]/@id");
     }
 
     /**
@@ -147,7 +148,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
             new File(String.format("%s/%s/%s/_comp/gen/default/public/%s/lib/java", DCS_FOLDER,
                 sapComSecurityApi.getVendor(), sapComSecurityApi.getName(), sapComSecurityApi.getPublicParts()
                     .iterator().next().getPublicPart())).getAbsolutePath();
-        this.assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
+        this.assertXPathResult(expected, "/project/path[1]/fileset[1]/@dir");
     }
 
     /**
@@ -182,7 +183,6 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     private String createBuildFile() throws IOException {
         StringWriter buildFile = new StringWriter();
         this.generator.evaluateContext(this.dcFactory.get(VENDOR, SAMPLE_DC1), buildFile);
-        System.err.println(buildFile);
 
         return buildFile.toString();
     }
