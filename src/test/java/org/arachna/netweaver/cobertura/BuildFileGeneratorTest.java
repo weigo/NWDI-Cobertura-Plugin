@@ -6,11 +6,15 @@ package org.arachna.netweaver.cobertura;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Arrays;
 
 import org.apache.velocity.app.VelocityEngine;
 import org.arachna.ant.AntHelper;
+import org.arachna.netweaver.dc.types.Compartment;
+import org.arachna.netweaver.dc.types.CompartmentState;
 import org.arachna.netweaver.dc.types.DevelopmentComponent;
 import org.arachna.netweaver.dc.types.DevelopmentComponentFactory;
+import org.arachna.netweaver.dc.types.DevelopmentConfiguration;
 import org.arachna.netweaver.dc.types.PublicPart;
 import org.arachna.netweaver.dc.types.PublicPartReference;
 import org.arachna.netweaver.dc.types.PublicPartType;
@@ -68,6 +72,11 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     private File workspace;
 
     /**
+     * Helper class for things related to Ant.
+     */
+    private AntHelper antHelper;
+
+    /**
      * {@inheritDoc}
      */
     @Before
@@ -77,7 +86,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
             new File(System.getProperty("java.io.tmpdir") + File.separatorChar + System.currentTimeMillis() + WORKSPACE);
         workspace.mkdirs();
         dcFactory = new DevelopmentComponentFactory();
-        AntHelper antHelper = new AntHelper(WORKSPACE, dcFactory);
+        antHelper = new AntHelper(WORKSPACE, dcFactory);
 
         PublicPart apiPublicPart = new PublicPart("api", "", "", PublicPartType.COMPILE);
         sapComSecurityApi =
@@ -93,7 +102,11 @@ public class BuildFileGeneratorTest extends XMLTestCase {
         File source = new File(sourceFolder, "x.java");
         source.createNewFile();
         component.addSourceFolder(sourceFolderName);
-        this.generator = new BuildFileGenerator(antHelper, new VelocityEngine(), System.err);
+        DevelopmentConfiguration config = new DevelopmentConfiguration("DI1_Example_D");
+        Compartment compartment = new Compartment("example.org_SC1_1", CompartmentState.Source, "example.org", "", "SC1");
+        config.add(compartment);
+        compartment.add(component);
+        this.generator = new BuildFileGenerator(antHelper, new VelocityEngine(), System.err, "", 0);
         new File(antHelper.getBaseLocation(sapComSecurityApi, apiPublicPart.getPublicPart())).mkdirs();
     }
 
@@ -113,7 +126,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testDefaultTarget() {
-        this.assertXPathResult("cobertura-example.org~lib~dc1", "/project/@default");
+        this.assertXPathResult("run-tests-example.org~lib~dc1", "/project/@default");
     }
 
     /**
@@ -134,7 +147,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testClasspathId() {
-        this.assertXPathResult("classpath-example.org~lib~dc1", "/project/path[1]/@id");
+        this.assertXPathResult("classpath-example.org~lib~dc1", "/project/path[2]/@id");
     }
 
     /**
@@ -148,7 +161,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
             new File(String.format("%s/%s/%s/_comp/gen/default/public/%s/lib/java", DCS_FOLDER,
                 sapComSecurityApi.getVendor(), sapComSecurityApi.getName(), sapComSecurityApi.getPublicParts()
                     .iterator().next().getPublicPart())).getAbsolutePath();
-        this.assertXPathResult(expected, "/project/path[1]/fileset[1]/@dir");
+        this.assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
     }
 
     /**
@@ -159,6 +172,27 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     @Test
     public final void testPropertyClassesDir() {
         this.assertXPathResult(CLASSES_DIR, "/project/property[@name='classes.dir']/@value");
+    }
+
+    /**
+     * Test method for
+     * {@link org.arachna.netweaver.cobertura.BuildFileGenerator#evaluateContext(org.arachna.netweaver.dc.types.DevelopmentComponent, java.io.Writer)}
+     * .
+     */
+    @Test
+    public final void testJunitTimeout0WontGenerateJunitTimeoutAttribute() {
+        this.assertXPathResult("0", "count(/project/target[4]/junit[@timeout])");
+    }
+
+    /**
+     * Test method for
+     * {@link org.arachna.netweaver.cobertura.BuildFileGenerator#evaluateContext(org.arachna.netweaver.dc.types.DevelopmentComponent, java.io.Writer)}
+     * .
+     */
+    @Test
+    public final void testJunitTimeoutGreaterThan0GeneratesJunitTimeoutAttribute() {
+        this.generator = new BuildFileGenerator(antHelper, new VelocityEngine(), System.err, "", 1);
+        this.assertXPathResult("1", "count(/project/target[4]/junit[@timeout='1'])");
     }
 
     private void assertXPathResult(String expected, String xPath) {
@@ -182,8 +216,8 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     private String createBuildFile() throws IOException {
         StringWriter buildFile = new StringWriter();
-        this.generator.evaluateContext(this.dcFactory.get(VENDOR, SAMPLE_DC1), buildFile);
-
+        this.generator.evaluateContext(this.dcFactory.get(VENDOR, SAMPLE_DC1), buildFile,
+            Arrays.asList(new String[] { "" }));
         return buildFile.toString();
     }
 }
