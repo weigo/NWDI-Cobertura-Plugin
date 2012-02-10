@@ -3,6 +3,7 @@
  */
 package org.arachna.netweaver.cobertura;
 
+import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
@@ -12,16 +13,10 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 
 import java.io.IOException;
-import java.io.PrintStream;
-import java.io.StringWriter;
-import java.util.Collection;
+import java.util.Map;
 
-import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.context.Context;
-import org.apache.velocity.exception.MethodInvocationException;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
+import org.arachna.netweaver.dc.types.DevelopmentComponent;
 import org.arachna.netweaver.hudson.nwdi.AntTaskBuilder;
 import org.arachna.netweaver.hudson.nwdi.DCWithJavaSourceAcceptingFilter;
 import org.arachna.netweaver.hudson.nwdi.NWDIBuild;
@@ -37,12 +32,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     /**
      * descriptor for this builder.
      */
+    @Extension(ordinal = 1000)
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     /**
      * timeout for running junit tasks.
      */
-    private int junitTimeOut = 2;
+    private int junitTimeOut = 0;
 
     /**
      * Create a new instance of a <code></code> using the given timeout for
@@ -73,51 +69,41 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
         throws InterruptedException, IOException {
         final VelocityEngine velocityEngine = getVelocityEngine(listener.getLogger());
+        String coberturaDir =
+            String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root.getAbsolutePath()
+                .replace("\\", "/"));
         final BuildFileGenerator generator =
-            new BuildFileGenerator(getAntHelper(), velocityEngine, listener.getLogger());
+            new BuildFileGenerator(getAntHelper(), velocityEngine, listener.getLogger(), coberturaDir,
+                this.junitTimeOut);
         final NWDIBuild nwdiBuild = (NWDIBuild)build;
-        final Collection<String> buildFiles =
+        final Map<DevelopmentComponent, String> buildFiles =
             generator.execute(nwdiBuild.getAffectedDevelopmentComponents(new DCWithJavaSourceAcceptingFilter()));
 
-        boolean result = createMasterBuildFile(nwdiBuild, listener.getLogger(), velocityEngine, buildFiles);
+        boolean result = true;
 
-        if (result) {
-            result = execute(build, launcher, listener, "cobertura-all", "cobertura-all.xml", getAntProperties());
+        for (Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
+            result = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
+
+            if (result) {
+                result =
+                    execute(build, launcher, listener, getTargetName(entry.getKey()), entry.getValue(),
+                        getAntProperties());
+            }
+
+            if (!result) {
+                break;
+            }
         }
 
         return result;
     }
 
-    private boolean createMasterBuildFile(final NWDIBuild nwdiBuild, final PrintStream logger,
-        final VelocityEngine velocityEngine, final Collection<String> buildFiles) {
-        boolean result = false;
-        final Context context = new VelocityContext();
-        context.put("buildFiles", buildFiles);
-        final StringWriter masterBuildFile = new StringWriter();
-
-        try {
-            velocityEngine
-                .evaluate(context, masterBuildFile, "", getTemplateReader("org/arachna/netweaver/cobertura/"));
-            result = true;
-            nwdiBuild.getWorkspace().child("cobertura-all.xml").write(masterBuildFile.toString(), "UTF-8");
-        }
-        catch (final ParseErrorException e) {
-            e.printStackTrace(logger);
-        }
-        catch (final MethodInvocationException e) {
-            e.printStackTrace(logger);
-        }
-        catch (final ResourceNotFoundException e) {
-            e.printStackTrace(logger);
-        }
-        catch (final IOException e) {
-            e.printStackTrace(logger);
-        }
-        catch (final InterruptedException e) {
-            e.printStackTrace(logger);
-        }
-
-        return result;
+    /**
+     * @param component
+     * @return
+     */
+    private String getTargetName(DevelopmentComponent component) {
+        return String.format("cobertura-report-%s~%s", component.getVendor(), component.getName().replace('/', '~'));
     }
 
     /**
@@ -125,8 +111,11 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     @Override
     protected String getAntProperties() {
-        return String.format("cobertura.dir=%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib junit.timeout=%d",
-            Hudson.getInstance().root.getAbsolutePath().replace("\\", "/"), junitTimeOut);
+        // return
+        // String.format("cobertura.dir=%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib",
+        // Hudson.getInstance().root
+        // .getAbsolutePath().replace("\\", "/"));
+        return "";
     }
 
     /**
@@ -135,6 +124,25 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     @Override
     public DescriptorImpl getDescriptor() {
         return DESCRIPTOR;
+    }
+
+    /**
+     * Returns the configured timeout for running JUnit test cases.
+     * 
+     * @return the junitTimeOut
+     */
+    public int getJunitTimeOut() {
+        return junitTimeOut;
+    }
+
+    /**
+     * Sets the configured timeout for running JUnit test cases.
+     * 
+     * @param junitTimeOut
+     *            the timeout to set
+     */
+    public void setJunitTimeOut(int junitTimeOut) {
+        this.junitTimeOut = junitTimeOut;
     }
 
     /**
