@@ -3,14 +3,12 @@
  */
 package org.arachna.netweaver.cobertura;
 
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,27 +20,16 @@ import org.apache.velocity.exception.MethodInvocationException;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.arachna.ant.AntHelper;
-import org.arachna.netweaver.dc.config.DevelopmentConfigurationReader;
-import org.arachna.netweaver.dc.types.Compartment;
-import org.arachna.netweaver.dc.types.CompartmentState;
 import org.arachna.netweaver.dc.types.DevelopmentComponent;
-import org.arachna.netweaver.dc.types.DevelopmentComponentFactory;
-import org.arachna.netweaver.hudson.nwdi.DCWithJavaSourceAcceptingFilter;
-import org.arachna.netweaver.hudson.nwdi.IDevelopmentComponentFilter;
-import org.arachna.velocity.VelocityHelper;
-import org.arachna.xml.XmlReaderHelper;
-import org.xml.sax.SAXException;
 
 /**
- * Ant build file generator for junit/cobertura combo for unit testing
- * development components.
+ * Ant build file generator for junit/cobertura combo for unit testing development components.
  * 
  * @author Dirk Weigenand
  */
 public final class BuildFileGenerator {
     /**
-     * Helper class for setting up an ant task with class path, source file sets
-     * etc.
+     * Helper class for setting up an ant task with class path, source file sets etc.
      */
     private final AntHelper antHelper;
 
@@ -67,14 +54,12 @@ public final class BuildFileGenerator {
     private final String coberturaDir;
 
     /**
-     * Create a new instance of the ant build file generate using the given
-     * {@link AntHelper} and {@link VelocityEngine}.
+     * Create a new instance of the ant build file generate using the given {@link AntHelper} and {@link VelocityEngine}.
      * 
      * @param antHelper
      *            helper object for ant build file creation
      * @param engine
-     *            {@link VelocityEngine} to transform the velocity template into
-     *            an ant build file.
+     *            {@link VelocityEngine} to transform the velocity template into an ant build file.
      * @param logger
      *            a logger for logging errors
      * @param coberturaDir
@@ -175,23 +160,19 @@ public final class BuildFileGenerator {
     }
 
     /**
-     * Return a {@link Reader} object for the velocity template used to generate
-     * the build file.
+     * Return a {@link Reader} object for the velocity template used to generate the build file.
      * 
-     * @return <code>Reader</code> object for the velocity template used to
-     *         generate the build file.
+     * @return <code>Reader</code> object for the velocity template used to generate the build file.
      */
     private Reader getTemplate() {
         return new InputStreamReader(this.getClass().getResourceAsStream("cobertura-build.vtl"));
     }
 
     /**
-     * Set up the velocity context for transforming the template into an ant
-     * build file.
+     * Set up the velocity context for transforming the template into an ant build file.
      * 
      * @param component
-     *            the development component the build file should be created
-     *            for.
+     *            the development component the build file should be created for.
      * @return velocity context object
      */
     Context createContext(DevelopmentComponent component, Collection<String> sources) {
@@ -206,30 +187,8 @@ public final class BuildFileGenerator {
         context.put("junitTimeout", junitTimeOut);
         context.put("targetVersion", component.getCompartment().getDevelopmentConfiguration().getSourceVersion());
         context.put("coberturaDir", this.coberturaDir);
+        context.put("encoding", "UTF-8");
 
         return context;
-    }
-
-    public static void main(String[] args) throws IOException, SAXException {
-        DevelopmentComponentFactory dcFactory = new DevelopmentComponentFactory();
-        DevelopmentConfigurationReader reader = new DevelopmentConfigurationReader(dcFactory);
-        final String workspace = "/tmp/jenkins/jobs/Libraries70-Projekttrack/workspace";
-        new XmlReaderHelper(reader).parse(new FileReader(workspace + "/DevelopmentConfiguration.xml"));
-        Collection<DevelopmentComponent> components = new ArrayList<DevelopmentComponent>();
-        IDevelopmentComponentFilter filter = new DCWithJavaSourceAcceptingFilter();
-
-        for (Compartment compartment : reader.getDevelopmentConfiguration().getCompartments(CompartmentState.Source)) {
-            for (DevelopmentComponent component : compartment.getDevelopmentComponents()) {
-                if (filter.accept(component)) {
-                    components.add(component);
-                }
-            }
-        }
-
-        BuildFileGenerator generator =
-            new BuildFileGenerator(new AntHelper(workspace, dcFactory),
-                new VelocityHelper(System.out).getVelocityEngine(), System.out,
-                "/workspace/NWDI-Cobertura-Plugin/target/NWDI-Cobertura-Plugin/WEB-INF/lib", 10000);
-        generator.execute(components);
     }
 }
