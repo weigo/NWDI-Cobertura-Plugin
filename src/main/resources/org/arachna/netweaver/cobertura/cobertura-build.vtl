@@ -3,9 +3,9 @@
   <property name="instrumented.dir" value="$componentBase/gen/instrumented-classes" />
   <property name="classes.dir" value="$classesDir" />
   <property name="log.dir" value="$componentBase/gen/default/logs" />
-  <property name="junit.report.dir" value="${log.dir}/junit" />
-  <property name="junit.html.dir" value="${junit.report.dir}/html" />
-  <property name="coveragereport.dir" value="${log.dir}/coveragereport" />
+  <property name="junit.report.dir" value="\${log.dir}/junit" />
+  <property name="junit.html.dir" value="\${junit.report.dir}/html" />
+  <property name="coveragereport.dir" value="\${log.dir}/coveragereport" />
   <property name="junit.timeout" value="$junitTimeout" />
   
   <path id="cobertura.path">
@@ -24,12 +24,12 @@
   </path>
 
   <target name="instrument-$vendor~$component" depends="compile-$vendor~$component">
-    <!--delete file="${coveragereport.dir}/cobertura.ser" /-->
-    <delete dir="${instrumented.dir}" />
-    <mkdir dir="${instrumented.dir}" />
+    <!--delete file="\${coveragereport.dir}/cobertura.ser" /-->
+    <delete dir="\${instrumented.dir}" />
+    <mkdir dir="\${instrumented.dir}" />
     
-    <cobertura-instrument todir="${instrumented.dir}">
-      <fileset dir="${classes.dir}">
+    <cobertura-instrument todir="\${instrumented.dir}">
+      <fileset dir="\${classes.dir}">
         <include name="**/*.class" />
         <!--exclude name="**/*Test.class" /-->
       </fileset>
@@ -37,10 +37,10 @@
   </target>
   
   <target name="compile-$vendor~$component">
-    <delete dir="${classes.dir}" />
-    <mkdir dir="${classes.dir}" />
-    <javac destdir="${classes.dir}" classpathref="classpath-$vendor~$component" debug="true" debuglevel="vars,lines,source"
-           deprecation="on" includeAntRuntime="false" target="$targetVersion" source="$targetVersion">
+    <delete dir="\${classes.dir}" />
+    <mkdir dir="\${classes.dir}" />
+    <javac destdir="\${classes.dir}" classpathref="classpath-$vendor~$component" debug="true" debuglevel="vars,lines,source"
+           deprecation="on" includeAntRuntime="false" target="$targetVersion" source="$targetVersion" encoding="$encoding">
 #foreach($source in $sources)
       <src path="$source" />
 #end  
@@ -49,7 +49,7 @@
   </target>
   
   <target name="copy">
-    <copy todir="${classes.dir}">
+    <copy todir="\${classes.dir}">
 #foreach($source in $sources)
       <fileset dir="$source" excludes="**/*.java" />
 #end
@@ -57,20 +57,20 @@
   </target>
   
   <target name="run-tests-$vendor~$component" depends="instrument-$vendor~$component, copy">
-    <delete dir="${junit.report.dir}" />
-    <mkdir dir="${junit.html.dir}" />
-    <delete dir="${coveragereport.dir}" />
-    <mkdir dir="${coveragereport.dir}" />
+    <delete dir="\${junit.report.dir}" />
+    <mkdir dir="\${junit.html.dir}" />
+    <delete dir="\${coveragereport.dir}" />
+    <mkdir dir="\${coveragereport.dir}" />
 #if ($junitTimeout > 0)
-    <junit fork="once" dir="${log.dir}" failureProperty="test.failed" printsummary="on" timeout="$junitTimeout">
+    <junit fork="once" dir="\${log.dir}" failureProperty="test.failed" printsummary="on" timeout="$junitTimeout">
 #else
-    <junit fork="once" dir="${log.dir}" failureProperty="test.failed" printsummary="on">
+    <junit fork="once" dir="\${log.dir}" failureProperty="test.failed" printsummary="on">
 #end
 	<!--
 		Specify the name of the coverage data file to use.
 		The value specified below is the default.
 	-->
-      <sysproperty key="net.sourceforge.cobertura.datafile"	file="${log.dir}/cobertura.ser" />
+      <sysproperty key="net.sourceforge.cobertura.datafile"	file="\${log.dir}/cobertura.ser" />
 
       <classpath refid="cobertura.path" />
 
@@ -78,8 +78,8 @@
 		Note the classpath order: instrumented classes are before the
 		original (uninstrumented) classes.  This is important.
 	-->
-      <classpath location="${instrumented.dir}" />
-      <classpath location="${classes.dir}" />
+      <classpath location="\${instrumented.dir}" />
+      <classpath location="\${classes.dir}" />
 
 	<!--
 		The instrumented classes reference classes used by the
@@ -89,7 +89,7 @@
       <classpath refid="classpath-$vendor~$component" />
 
       <formatter type="xml" />
-      <batchtest todir="${junit.report.dir}">
+      <batchtest todir="\${junit.report.dir}">
 #foreach($source in $sources)
         <fileset dir="$source">
           <include name="**/*Test.java" />
@@ -97,24 +97,24 @@
 #end
       </batchtest>
     </junit>
-    <junitreport todir="${junit.html.dir}">
-      <fileset dir="${junit.report.dir}">
+    <junitreport todir="\${junit.html.dir}">
+      <fileset dir="\${junit.report.dir}">
         <include name="TEST-*.xml"/>
       </fileset>
-      <report format="frames" todir="${junit.html.dir}"/>
+      <report format="frames" todir="\${junit.html.dir}"/>
     </junitreport>
   </target>
   
   <target name="cobertura-report-$vendor~$component">
-    <mkdir dir="${coveragereport.dir}" />
-    <cobertura-report format="xml" destdir="${coveragereport.dir}" >
+    <mkdir dir="\${coveragereport.dir}" />
+    <cobertura-report format="xml" destdir="\${coveragereport.dir}" >
 #foreach($source in $sources)
         <fileset dir="$source">
           <include name="**/*.java" />
         </fileset>
 #end
     </cobertura-report>
-    <cobertura-report format="html" destdir="${coveragereport.dir}" >
+    <cobertura-report format="html" destdir="\${coveragereport.dir}" >
 #foreach($source in $sources)
         <fileset dir="$source">
           <include name="**/*.java" />
