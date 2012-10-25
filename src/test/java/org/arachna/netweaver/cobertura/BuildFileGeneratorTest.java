@@ -34,8 +34,8 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     /**
      * 
      */
-    private static final String WORKSPACE = System.getProperty("java.io.tmpdir") + System.currentTimeMillis()
-        + "/jenkins/jobs/example.org/workspace";
+    private static final String WORKSPACE = String.format("%s/%d/jenkins/jobs/example.org/workspace",
+        System.getProperty("java.io.tmpdir"), System.currentTimeMillis());
 
     /**
      * Folder where development components are located.
@@ -79,40 +79,42 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     /**
      * {@inheritDoc}
      */
+    @Override
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        workspace =
-            new File(System.getProperty("java.io.tmpdir") + File.separatorChar + System.currentTimeMillis() + WORKSPACE);
+        workspace = new File(WORKSPACE);
         workspace.mkdirs();
         dcFactory = new DevelopmentComponentFactory();
         antHelper = new AntHelper(WORKSPACE, dcFactory);
 
-        PublicPart apiPublicPart = new PublicPart("api", "", "", PublicPartType.COMPILE);
+        final PublicPart apiPublicPart = new PublicPart("api", "", "", PublicPartType.COMPILE);
         sapComSecurityApi =
-            this.dcFactory.create("sap.com", "sap.com.security.api.sda", new PublicPart[] { apiPublicPart },
+            dcFactory.create("sap.com", "sap.com.security.api.sda", new PublicPart[] { apiPublicPart },
                 new PublicPartReference[] {});
-        DevelopmentComponent component =
-            this.dcFactory.create(VENDOR, SAMPLE_DC1, new PublicPart[] { apiPublicPart },
+        final DevelopmentComponent component =
+            dcFactory.create(VENDOR, SAMPLE_DC1, new PublicPart[] { apiPublicPart },
                 new PublicPartReference[] { new PublicPartReference("sap.com", "sap.com.security.api.sda", "api") });
         component.setOutputFolder(CLASSES_DIR);
-        String sourceFolderName = antHelper.getBaseLocation(component) + "/src/packages";
-        File sourceFolder = new File(sourceFolderName);
+        final String sourceFolderName = antHelper.getBaseLocation(component) + "/src/packages";
+        final File sourceFolder = new File(sourceFolderName);
         sourceFolder.mkdirs();
-        File source = new File(sourceFolder, "x.java");
+        final File source = new File(sourceFolder, "x.java");
         source.createNewFile();
         component.addSourceFolder(sourceFolderName);
-        DevelopmentConfiguration config = new DevelopmentConfiguration("DI1_Example_D");
-        Compartment compartment = new Compartment("example.org_SC1_1", CompartmentState.Source, "example.org", "", "SC1");
+        final DevelopmentConfiguration config = new DevelopmentConfiguration("DI1_Example_D");
+        final Compartment compartment =
+            new Compartment("example.org_SC1_1", CompartmentState.Source, "example.org", "", "SC1");
         config.add(compartment);
         compartment.add(component);
-        this.generator = new BuildFileGenerator(antHelper, new VelocityEngine(), System.err, "", 0);
+        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", 0);
         new File(antHelper.getBaseLocation(sapComSecurityApi, apiPublicPart.getPublicPart())).mkdirs();
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     @After
     protected void tearDown() throws Exception {
         super.tearDown();
@@ -126,7 +128,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testDefaultTarget() {
-        this.assertXPathResult("run-tests-example.org~lib~dc1", "/project/@default");
+        assertXPathResult("run-tests-example.org~lib~dc1", "/project/@default");
     }
 
     /**
@@ -136,7 +138,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testPropertyInstrumentedDir() {
-        this.assertXPathResult(DCS_FOLDER + "/example.org/lib/dc1/_comp/gen/instrumented-classes",
+        assertXPathResult(DCS_FOLDER + "/example.org/lib/dc1/_comp/gen/instrumented-classes",
             "/project/property[@name='instrumented.dir']/@value");
     }
 
@@ -147,7 +149,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testClasspathId() {
-        this.assertXPathResult("classpath-example.org~lib~dc1", "/project/path[2]/@id");
+        assertXPathResult("classpath-example.org~lib~dc1", "/project/path[2]/@id");
     }
 
     /**
@@ -157,11 +159,11 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testClasspath() {
-        String expected =
+        final String expected =
             new File(String.format("%s/%s/%s/_comp/gen/default/public/%s/lib/java", DCS_FOLDER,
                 sapComSecurityApi.getVendor(), sapComSecurityApi.getName(), sapComSecurityApi.getPublicParts()
                     .iterator().next().getPublicPart())).getAbsolutePath();
-        this.assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
+        assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
     }
 
     /**
@@ -171,7 +173,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testPropertyClassesDir() {
-        this.assertXPathResult(CLASSES_DIR, "/project/property[@name='classes.dir']/@value");
+        assertXPathResult(CLASSES_DIR, "/project/property[@name='classes.dir']/@value");
     }
 
     /**
@@ -181,7 +183,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testJunitTimeout0WontGenerateJunitTimeoutAttribute() {
-        this.assertXPathResult("0", "count(/project/target[4]/junit[@timeout])");
+        assertXPathResult("0", "count(/project/target[4]/junit[@timeout])");
     }
 
     /**
@@ -191,21 +193,21 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testJunitTimeoutGreaterThan0GeneratesJunitTimeoutAttribute() {
-        this.generator = new BuildFileGenerator(antHelper, new VelocityEngine(), System.err, "", 1);
-        this.assertXPathResult("1", "count(/project/target[4]/junit[@timeout='1'])");
+        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", 1);
+        assertXPathResult("1", "count(/project/target[4]/junit[@timeout='1'])");
     }
 
-    private void assertXPathResult(String expected, String xPath) {
+    private void assertXPathResult(final String expected, final String xPath) {
         try {
             this.assertXpathEvaluatesTo(expected, xPath, createBuildFile());
         }
-        catch (IOException ioe) {
+        catch (final IOException ioe) {
             fail(ioe.getMessage());
         }
-        catch (XpathException xe) {
+        catch (final XpathException xe) {
             fail(xe.getMessage());
         }
-        catch (SAXException se) {
+        catch (final SAXException se) {
             fail(se.getMessage());
         }
     }
@@ -215,9 +217,8 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * @throws IOException
      */
     private String createBuildFile() throws IOException {
-        StringWriter buildFile = new StringWriter();
-        this.generator.evaluateContext(this.dcFactory.get(VENDOR, SAMPLE_DC1), buildFile,
-            Arrays.asList(new String[] { "" }));
+        final StringWriter buildFile = new StringWriter();
+        generator.evaluateContext(dcFactory.get(VENDOR, SAMPLE_DC1), buildFile, Arrays.asList(new String[] { "" }));
         return buildFile.toString();
     }
 }

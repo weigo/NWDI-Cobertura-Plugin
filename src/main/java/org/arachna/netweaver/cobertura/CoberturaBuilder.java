@@ -38,7 +38,12 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     /**
      * timeout for running junit tasks.
      */
-    private int junitTimeOut = 0;
+    private int junitTimeOut;
+
+    /**
+     * encoding of source files.
+     */
+    private final String encoding = "UTF-8";
 
     /**
      * Create a new instance of a <code></code> using the given timeout for
@@ -69,19 +74,18 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
         throws InterruptedException, IOException {
         final VelocityEngine velocityEngine = getVelocityEngine(listener.getLogger());
-        String coberturaDir =
+        final String coberturaDir =
             String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root.getAbsolutePath()
                 .replace("\\", "/"));
         final BuildFileGenerator generator =
-            new BuildFileGenerator(getAntHelper(), velocityEngine, listener.getLogger(), coberturaDir,
-                this.junitTimeOut);
+            new BuildFileGenerator(getAntHelper(), velocityEngine, encoding, coberturaDir, junitTimeOut);
         final NWDIBuild nwdiBuild = (NWDIBuild)build;
         final Map<DevelopmentComponent, String> buildFiles =
             generator.execute(nwdiBuild.getAffectedDevelopmentComponents(new DCWithJavaSourceAcceptingFilter()));
 
         boolean result = true;
 
-        for (Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
+        for (final Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
             result = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
 
             if (result) {
@@ -99,10 +103,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     }
 
     /**
+     * Generate name of cobertura report target to execute via ant.
+     * 
      * @param component
-     * @return
+     *            development component for which to execute cobertura.
+     * @return the name of the ant target to execute.
      */
-    private String getTargetName(DevelopmentComponent component) {
+    private String getTargetName(final DevelopmentComponent component) {
         return String.format("cobertura-report-%s~%s", component.getVendor(), component.getName().replace('/', '~'));
     }
 
@@ -111,10 +118,6 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     @Override
     protected String getAntProperties() {
-        // return
-        // String.format("cobertura.dir=%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib",
-        // Hudson.getInstance().root
-        // .getAbsolutePath().replace("\\", "/"));
         return "";
     }
 
@@ -141,7 +144,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      * @param junitTimeOut
      *            the timeout to set
      */
-    public void setJunitTimeOut(int junitTimeOut) {
+    public void setJunitTimeOut(final int junitTimeOut) {
         this.junitTimeOut = junitTimeOut;
     }
 
