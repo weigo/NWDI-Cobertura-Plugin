@@ -24,7 +24,7 @@ import org.arachna.netweaver.dc.types.DevelopmentComponent;
  * 
  * @author Dirk Weigenand
  */
-public final class BuildFileGenerator {
+public class BuildFileGenerator {
     /**
      * Helper class for setting up an ant task with class path, source file sets
      * etc.
@@ -52,6 +52,11 @@ public final class BuildFileGenerator {
     private final String encoding;
 
     /**
+     * Producer for build file writers.
+     */
+    private IBuildFileWriterFactory writerFactory;
+
+    /**
      * Create a new instance of the ant build file generate using the given
      * {@link AntHelper} and {@link VelocityEngine}.
      * 
@@ -74,6 +79,7 @@ public final class BuildFileGenerator {
         this.encoding = encoding;
         this.coberturaDir = coberturaDir;
         this.junitTimeOut = junitTimeOut;
+        setWriterFactory(new BuildFileWriterFactory());
     }
 
     /**
@@ -106,12 +112,12 @@ public final class BuildFileGenerator {
      *            source folders
      * @return the absolute path to the generated build file.
      */
-    private String createBuildFile(final DevelopmentComponent component, final Collection<String> sources) {
+    protected String createBuildFile(final DevelopmentComponent component, final Collection<String> sources) {
         final String buildFileName = String.format("%s/cobertura-build.xml", antHelper.getBaseLocation(component));
         Writer writer = null;
 
         try {
-            writer = new FileWriter(buildFileName);
+            writer = writerFactory.create(buildFileName);
             evaluateContext(component, writer, sources);
         }
         catch (final IOException ioe) {
@@ -185,5 +191,45 @@ public final class BuildFileGenerator {
         context.put("encoding", encoding);
 
         return context;
+    }
+
+    /**
+     * @param writerFactory
+     *            the writerFactory to set
+     */
+    void setWriterFactory(final IBuildFileWriterFactory writerFactory) {
+        this.writerFactory = writerFactory;
+    }
+
+    /**
+     * Factory for writers of build file content.
+     * 
+     * @author Dirk Weigenand
+     */
+    interface IBuildFileWriterFactory {
+        /**
+         * Create a writer for the build file contents.
+         * 
+         * @param buildFileName
+         *            name of build file to write contents to.
+         * @return Writer for build file contents.
+         */
+        Writer create(String buildFileName) throws IOException;
+    }
+
+    /**
+     * Factory for build file writers.
+     * 
+     * @author Dirk Weigenand
+     */
+    private static final class BuildFileWriterFactory implements IBuildFileWriterFactory {
+        /**
+         * {@inheritDoc}
+         * 
+         * @throws IOException
+         */
+        public Writer create(final String buildFileName) throws IOException {
+            return new FileWriter(buildFileName);
+        }
     }
 }

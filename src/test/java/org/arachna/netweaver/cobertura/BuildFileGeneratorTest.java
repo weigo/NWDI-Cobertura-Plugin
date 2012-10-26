@@ -3,13 +3,22 @@
  */
 package org.arachna.netweaver.cobertura;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.velocity.app.VelocityEngine;
 import org.arachna.ant.AntHelper;
+import org.arachna.netweaver.cobertura.BuildFileGenerator.IBuildFileWriterFactory;
 import org.arachna.netweaver.dc.types.Compartment;
 import org.arachna.netweaver.dc.types.CompartmentState;
 import org.arachna.netweaver.dc.types.DevelopmentComponent;
@@ -32,10 +41,9 @@ import org.xml.sax.SAXException;
  */
 public class BuildFileGeneratorTest extends XMLTestCase {
     /**
-     * 
+     * path to workspace folder
      */
-    private static final String WORKSPACE = String.format("%s/%d/jenkins/jobs/example.org/workspace",
-        System.getProperty("java.io.tmpdir"), System.currentTimeMillis());
+    private static final String WORKSPACE = "/opt/jenkins/jobs/example-track/workspace";
 
     /**
      * Folder where development components are located.
@@ -67,14 +75,16 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     private DevelopmentComponentFactory dcFactory;
 
-    private DevelopmentComponent sapComSecurityApi;
-
-    private File workspace;
-
     /**
      * Helper class for things related to Ant.
      */
     private AntHelper antHelper;
+
+    /**
+     * a writer factory that records the content written into the last produced
+     * writer.
+     */
+    private RecordingBuildFileWriterFactory writerFactory;
 
     /**
      * {@inheritDoc}
@@ -83,32 +93,36 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        workspace = new File(WORKSPACE);
-        workspace.mkdirs();
         dcFactory = new DevelopmentComponentFactory();
-        antHelper = new AntHelper(WORKSPACE, dcFactory);
+        antHelper = new AntHelper(WORKSPACE, dcFactory) {
+            @Override
+            public Collection<String> createSourceFileSets(final DevelopmentComponent component) {
+                return Arrays.asList("src/packages");
+            }
+
+            @Override
+            public Set<String> createClassPath(final DevelopmentComponent component) {
+                return new HashSet<String>() {
+                    {
+                        add(getExpectedClassPath());
+                    }
+                };
+            }
+        };
 
         final PublicPart apiPublicPart = new PublicPart("api", "", "", PublicPartType.COMPILE);
-        sapComSecurityApi =
-            dcFactory.create("sap.com", "sap.com.security.api.sda", new PublicPart[] { apiPublicPart },
-                new PublicPartReference[] {});
+        dcFactory.create("sap.com", "sap.com.security.api.sda", new PublicPart[] { apiPublicPart },
+            new PublicPartReference[] {});
         final DevelopmentComponent component =
             dcFactory.create(VENDOR, SAMPLE_DC1, new PublicPart[] { apiPublicPart },
                 new PublicPartReference[] { new PublicPartReference("sap.com", "sap.com.security.api.sda", "api") });
         component.setOutputFolder(CLASSES_DIR);
-        final String sourceFolderName = antHelper.getBaseLocation(component) + "/src/packages";
-        final File sourceFolder = new File(sourceFolderName);
-        sourceFolder.mkdirs();
-        final File source = new File(sourceFolder, "x.java");
-        source.createNewFile();
-        component.addSourceFolder(sourceFolderName);
+        component.addSourceFolder(antHelper.getBaseLocation(component) + "/src/packages");
         final DevelopmentConfiguration config = new DevelopmentConfiguration("DI1_Example_D");
-        final Compartment compartment =
-            new Compartment("example.org_SC1_1", CompartmentState.Source, "example.org", "", "SC1");
+        final Compartment compartment = Compartment.create(VENDOR, "SC1", CompartmentState.Source, "");
         config.add(compartment);
         compartment.add(component);
-        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", 0);
-        new File(antHelper.getBaseLocation(sapComSecurityApi, apiPublicPart.getPublicPart())).mkdirs();
+        createBuildFileGenerator(0);
     }
 
     /**
@@ -118,7 +132,6 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     @After
     protected void tearDown() throws Exception {
         super.tearDown();
-        workspace.deleteOnExit();
     }
 
     /**
@@ -159,11 +172,19 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testClasspath() {
-        final String expected =
-            new File(String.format("%s/%s/%s/_comp/gen/default/public/%s/lib/java", DCS_FOLDER,
-                sapComSecurityApi.getVendor(), sapComSecurityApi.getName(), sapComSecurityApi.getPublicParts()
-                    .iterator().next().getPublicPart())).getAbsolutePath();
+        final String expected = getExpectedClassPath();
         assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
+    }
+
+    /**
+     * @return
+     */
+    protected String getExpectedClassPath() {
+        final DevelopmentComponent sapComSecurityApi = dcFactory.get("sap.com", "sap.com.security.api.sda");
+
+        return new File(String.format("%s/%s/%s/_comp/gen/default/public/%s/lib/java", DCS_FOLDER,
+            sapComSecurityApi.getVendor(), sapComSecurityApi.getName(), sapComSecurityApi.getPublicParts().iterator()
+                .next().getPublicPart())).getAbsolutePath();
     }
 
     /**
@@ -193,13 +214,41 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      */
     @Test
     public final void testJunitTimeoutGreaterThan0GeneratesJunitTimeoutAttribute() {
-        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", 1);
+        createBuildFileGenerator(1);
         assertXPathResult("1", "count(/project/target[4]/junit[@timeout='1'])");
     }
 
+    @Test
+    public void testExecute() {
+        final DevelopmentComponent component = dcFactory.get(VENDOR, SAMPLE_DC1);
+        final Map<DevelopmentComponent, String> buildFiles = generator.execute(Arrays.asList(component));
+
+        assertThat(String.format("%s/cobertura-build.xml", antHelper.getBaseLocation(component)),
+            equalTo(buildFiles.get(component)));
+    }
+
+    /**
+     * 
+     */
+    protected void createBuildFileGenerator(final int timeout) {
+        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", timeout);
+        writerFactory = new RecordingBuildFileWriterFactory();
+        generator.setWriterFactory(writerFactory);
+    }
+
+    /**
+     * Assert that the expected string can be selected using the given XPath
+     * expression.
+     * 
+     * @param expected
+     *            expected result.
+     * @param xPath
+     *            XPath to select the real value.
+     */
     private void assertXPathResult(final String expected, final String xPath) {
         try {
-            this.assertXpathEvaluatesTo(expected, xPath, createBuildFile());
+            final String buildFile = createBuildFile();
+            this.assertXpathEvaluatesTo(expected, xPath, buildFile);
         }
         catch (final IOException ioe) {
             fail(ioe.getMessage());
@@ -217,8 +266,24 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * @throws IOException
      */
     private String createBuildFile() throws IOException {
-        final StringWriter buildFile = new StringWriter();
-        generator.evaluateContext(dcFactory.get(VENDOR, SAMPLE_DC1), buildFile, Arrays.asList(new String[] { "" }));
-        return buildFile.toString();
+        generator.createBuildFile(dcFactory.get(VENDOR, SAMPLE_DC1), Arrays.asList("src/packages"));
+
+        return writerFactory.getContent();
+    }
+
+    private static final class RecordingBuildFileWriterFactory implements IBuildFileWriterFactory {
+        private StringWriter buildFileContent;
+
+        /**
+         * {@inheritDoc}
+         */
+        public Writer create(final String buildFileName) throws IOException {
+            buildFileContent = new StringWriter();
+            return buildFileContent;
+        }
+
+        String getContent() {
+            return buildFileContent == null ? "" : buildFileContent.toString();
+        }
     }
 }
