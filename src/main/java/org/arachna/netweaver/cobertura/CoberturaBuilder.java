@@ -11,8 +11,10 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import hudson.util.ListBoxModel;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.velocity.app.VelocityEngine;
@@ -43,7 +45,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     /**
      * encoding of source files.
      */
-    private final String encoding = "UTF-8";
+    private String encoding = "UTF-8";
 
     /**
      * Create a new instance of a <code></code> using the given timeout for
@@ -51,9 +53,11 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      * 
      * @param junitTimeOut
      *            timeout for junit ant task
+     * @param encoding
+     *            to use when running Cobertura.
      */
     @DataBoundConstructor
-    public CoberturaBuilder(final String junitTimeOut) {
+    public CoberturaBuilder(final String junitTimeOut, final String encoding) {
         try {
             if (junitTimeOut != null) {
                 final int timeOut = Integer.parseInt(junitTimeOut);
@@ -64,6 +68,10 @@ public final class CoberturaBuilder extends AntTaskBuilder {
             }
         }
         catch (final NumberFormatException nfe) {
+        }
+
+        if (encoding != null && !encoding.isEmpty()) {
+            this.encoding = encoding;
         }
     }
 
@@ -78,7 +86,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
             String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root.getAbsolutePath()
                 .replace("\\", "/"));
         final BuildFileGenerator generator =
-            new BuildFileGenerator(getAntHelper(), velocityEngine, encoding, coberturaDir, junitTimeOut);
+            new BuildFileGenerator(getAntHelper(), velocityEngine, getEncoding(), coberturaDir, junitTimeOut);
         final NWDIBuild nwdiBuild = (NWDIBuild)build;
         final Map<DevelopmentComponent, String> buildFiles =
             generator.execute(nwdiBuild.getAffectedDevelopmentComponents(new DCWithJavaSourceAcceptingFilter()));
@@ -149,6 +157,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     }
 
     /**
+     * @return the encoding
+     */
+    public String getEncoding() {
+        return encoding;
+    }
+
+    /**
      * Descriptor for {@link CheckstyleBuilder}.
      */
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
@@ -171,10 +186,28 @@ public final class CoberturaBuilder extends AntTaskBuilder {
 
         /**
          * This human readable name is used in the configuration screen.
+         * 
+         * @return the human readable name of this builder.
          */
         @Override
         public String getDisplayName() {
             return "NWDI Cobertura Builder";
+        }
+
+        /**
+         * Return a {@link ListBoxModel} containing the available character
+         * sets.
+         * 
+         * @return the available character sets.
+         */
+        public ListBoxModel doFillEncodingItems() {
+            final ListBoxModel items = new ListBoxModel();
+
+            for (final String charSet : Charset.availableCharsets().keySet()) {
+                items.add(charSet, charSet);
+            }
+
+            return items;
         }
     }
 }

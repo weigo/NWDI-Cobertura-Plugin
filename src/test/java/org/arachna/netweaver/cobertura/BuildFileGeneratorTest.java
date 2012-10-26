@@ -140,7 +140,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testDefaultTarget() {
+    public void testDefaultTarget() {
         assertXPathResult("run-tests-example.org~lib~dc1", "/project/@default");
     }
 
@@ -150,7 +150,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testPropertyInstrumentedDir() {
+    public void testPropertyInstrumentedDir() {
         assertXPathResult(DCS_FOLDER + "/example.org/lib/dc1/_comp/gen/instrumented-classes",
             "/project/property[@name='instrumented.dir']/@value");
     }
@@ -161,7 +161,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testClasspathId() {
+    public void testClasspathId() {
         assertXPathResult("classpath-example.org~lib~dc1", "/project/path[2]/@id");
     }
 
@@ -171,7 +171,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testClasspath() {
+    public void testClasspath() {
         final String expected = getExpectedClassPath();
         assertXPathResult(expected, "/project/path[2]/fileset[1]/@dir");
     }
@@ -193,7 +193,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testPropertyClassesDir() {
+    public void testPropertyClassesDir() {
         assertXPathResult(CLASSES_DIR, "/project/property[@name='classes.dir']/@value");
     }
 
@@ -203,7 +203,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testJunitTimeout0WontGenerateJunitTimeoutAttribute() {
+    public void testJunitTimeout0WontGenerateJunitTimeoutAttribute() {
         assertXPathResult("0", "count(/project/target[4]/junit[@timeout])");
     }
 
@@ -213,7 +213,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * .
      */
     @Test
-    public final void testJunitTimeoutGreaterThan0GeneratesJunitTimeoutAttribute() {
+    public void testJunitTimeoutGreaterThan0GeneratesJunitTimeoutAttribute() {
         createBuildFileGenerator(1);
         assertXPathResult("1", "count(/project/target[4]/junit[@timeout='1'])");
     }

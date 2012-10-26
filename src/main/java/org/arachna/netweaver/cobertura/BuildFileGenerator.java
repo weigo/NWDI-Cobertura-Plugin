@@ -213,6 +213,8 @@ public class BuildFileGenerator {
          * @param buildFileName
          *            name of build file to write contents to.
          * @return Writer for build file contents.
+         * @throws IOException
+         *             when creating the writer failed.
          */
         Writer create(String buildFileName) throws IOException;
     }
