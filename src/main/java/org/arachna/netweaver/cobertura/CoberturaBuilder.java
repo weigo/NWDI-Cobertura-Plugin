@@ -34,7 +34,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     /**
      * descriptor for this builder.
      */
-    @Extension(ordinal = 1000)
+    @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     /**
