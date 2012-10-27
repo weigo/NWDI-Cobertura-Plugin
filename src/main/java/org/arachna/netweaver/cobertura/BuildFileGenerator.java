@@ -89,7 +89,7 @@ public class BuildFileGenerator {
      *            development components to create build files for.
      * @return a collection of paths to the created build files
      */
-    public Map<DevelopmentComponent, String> execute(final Collection<DevelopmentComponent> components) {
+    public final Map<DevelopmentComponent, String> execute(final Collection<DevelopmentComponent> components) {
         final Map<DevelopmentComponent, String> buildFileNames = new HashMap<DevelopmentComponent, String>();
 
         for (final DevelopmentComponent component : components) {
@@ -112,7 +112,7 @@ public class BuildFileGenerator {
      *            source folders
      * @return the absolute path to the generated build file.
      */
-    protected String createBuildFile(final DevelopmentComponent component, final Collection<String> sources) {
+    protected final String createBuildFile(final DevelopmentComponent component, final Collection<String> sources) {
         final String buildFileName = String.format("%s/cobertura-build.xml", antHelper.getBaseLocation(component));
         Writer writer = null;
 
@@ -149,8 +149,8 @@ public class BuildFileGenerator {
      * @throws IOException
      *             when writing the build file fails
      */
-    void evaluateContext(final DevelopmentComponent component, final Writer writer, final Collection<String> sources)
-        throws IOException {
+    final void evaluateContext(final DevelopmentComponent component, final Writer writer,
+        final Collection<String> sources) throws IOException {
         engine.evaluate(createContext(component, sources), writer, "", getTemplate());
     }
 
@@ -176,7 +176,7 @@ public class BuildFileGenerator {
      *            collection of folders containing java sources.
      * @return velocity context object
      */
-    Context createContext(final DevelopmentComponent component, final Collection<String> sources) {
+    final Context createContext(final DevelopmentComponent component, final Collection<String> sources) {
         final Context context = new VelocityContext();
 
         context.put("vendor", component.getVendor());
@@ -197,7 +197,7 @@ public class BuildFileGenerator {
      * @param writerFactory
      *            the writerFactory to set
      */
-    void setWriterFactory(final IBuildFileWriterFactory writerFactory) {
+    final void setWriterFactory(final IBuildFileWriterFactory writerFactory) {
         this.writerFactory = writerFactory;
     }
 
