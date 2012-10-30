@@ -3,6 +3,7 @@
  */
 package org.arachna.netweaver.cobertura;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,23 +12,23 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.context.Context;
 import org.arachna.ant.AntHelper;
 import org.arachna.netweaver.dc.types.DevelopmentComponent;
+import org.arachna.util.io.FileFinder;
 
 /**
- * Ant build file generator for junit/cobertura combo for unit testing
- * development components.
+ * Ant build file generator for junit/cobertura combo for unit testing development components.
  * 
  * @author Dirk Weigenand
  */
 public class BuildFileGenerator {
     /**
-     * Helper class for setting up an ant task with class path, source file sets
-     * etc.
+     * Helper class for setting up an ant task with class path, source file sets etc.
      */
     private final AntHelper antHelper;
 
@@ -57,14 +58,13 @@ public class BuildFileGenerator {
     private IBuildFileWriterFactory writerFactory;
 
     /**
-     * Create a new instance of the ant build file generate using the given
-     * {@link AntHelper} and {@link VelocityEngine}.
+     * Create a new instance of the ant build file generate using the given {@link AntHelper} and {@link VelocityEngine}
+     * .
      * 
      * @param antHelper
      *            helper object for ant build file creation
      * @param engine
-     *            {@link VelocityEngine} to transform the velocity template into
-     *            an ant build file.
+     *            {@link VelocityEngine} to transform the velocity template into an ant build file.
      * @param encoding
      *            encoding of source files.
      * @param coberturaDir
@@ -91,16 +91,38 @@ public class BuildFileGenerator {
      */
     public final Map<DevelopmentComponent, String> execute(final Collection<DevelopmentComponent> components) {
         final Map<DevelopmentComponent, String> buildFileNames = new HashMap<DevelopmentComponent, String>();
-
         for (final DevelopmentComponent component : components) {
             final Collection<String> sources = antHelper.createSourceFileSets(component);
 
-            if (!sources.isEmpty()) {
+            if (!sources.isEmpty() && hasJunitInClassPath(component)) {
                 buildFileNames.put(component, createBuildFile(component, sources));
             }
         }
 
         return buildFileNames;
+    }
+
+    /**
+     * Checks that the given development component has a JUnit archive in the classpath.
+     * 
+     * @param component
+     *            development component to check for existence of JUnit in classpath.
+     * @return <code>true</code> when JUnit is contained in the class path of this DC, <code>false</code> otherwise.
+     */
+    protected final boolean hasJunitInClassPath(final DevelopmentComponent component) {
+        final Set<String> classPath = antHelper.createClassPath(component);
+        boolean hasJunitInClassPath = false;
+
+        for (String path : classPath) {
+            final FileFinder finder = new FileFinder(new File(path), "junit*\\.jar");
+
+            if (!finder.find().isEmpty()) {
+                hasJunitInClassPath = true;
+                break;
+            }
+        }
+
+        return hasJunitInClassPath;
     }
 
     /**
@@ -155,23 +177,19 @@ public class BuildFileGenerator {
     }
 
     /**
-     * Return a {@link Reader} object for the velocity template used to generate
-     * the build file.
+     * Return a {@link Reader} object for the velocity template used to generate the build file.
      * 
-     * @return <code>Reader</code> object for the velocity template used to
-     *         generate the build file.
+     * @return <code>Reader</code> object for the velocity template used to generate the build file.
      */
     private Reader getTemplate() {
         return new InputStreamReader(this.getClass().getResourceAsStream("cobertura-build.vm"));
     }
 
     /**
-     * Set up the velocity context for transforming the template into an ant
-     * build file.
+     * Set up the velocity context for transforming the template into an ant build file.
      * 
      * @param component
-     *            the development component the build file should be created
-     *            for.
+     *            the development component the build file should be created for.
      * @param sources
      *            collection of folders containing java sources.
      * @return velocity context object

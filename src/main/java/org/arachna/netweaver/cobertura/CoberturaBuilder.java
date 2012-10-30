@@ -38,9 +38,14 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     /**
+     * Default JUnit timeout.
+     */
+    private static final int DEFAULT_JUNIT_TIMEOUT = 30000;
+
+    /**
      * timeout for running junit tasks.
      */
-    private int junitTimeOut;
+    private int junitTimeOut = DEFAULT_JUNIT_TIMEOUT;
 
     /**
      * encoding of source files.
@@ -48,13 +53,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     private String encoding = "UTF-8";
 
     /**
-     * Create a new instance of a <code></code> using the given timeout for
-     * running the junit ant task.
+     * Create a new instance of a <code>CoberturaBuilder</code> using the given timeout for running the junit ant task.
+     * Use the given encoding for compiling the Java sources before running the tests.
      * 
      * @param junitTimeOut
      *            timeout for junit ant task
      * @param encoding
-     *            to use when running Cobertura.
+     *            to use for compiling Java sources before running JUnit/Cobertura.
      */
     @DataBoundConstructor
     public CoberturaBuilder(final String junitTimeOut, final String encoding) {
@@ -94,16 +99,12 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         boolean result = true;
 
         for (final Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
-            result = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
+            boolean createSuccessful = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
 
-            if (result) {
-                result =
+            if (createSuccessful) {
+                result &=
                     execute(build, launcher, listener, getTargetName(entry.getKey()), entry.getValue(),
                         getAntProperties());
-            }
-
-            if (!result) {
-                break;
             }
         }
 
@@ -168,8 +169,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
         /**
-         * Create descriptor for NWDI-CheckStyle-Builder and load global
-         * configuration data.
+         * Create descriptor for NWDI-CheckStyle-Builder and load global configuration data.
          */
         public DescriptorImpl() {
             load();
@@ -195,8 +195,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         }
 
         /**
-         * Return a {@link ListBoxModel} containing the available character
-         * sets.
+         * Return a {@link ListBoxModel} containing the available character sets.
          * 
          * @return the available character sets.
          */
