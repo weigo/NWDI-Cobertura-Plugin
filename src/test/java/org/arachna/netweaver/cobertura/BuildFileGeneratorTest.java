@@ -81,8 +81,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
     private AntHelper antHelper;
 
     /**
-     * a writer factory that records the content written into the last produced
-     * writer.
+     * a writer factory that records the content written into the last produced writer.
      */
     private RecordingBuildFileWriterFactory writerFactory;
 
@@ -231,14 +230,13 @@ public class BuildFileGeneratorTest extends XMLTestCase {
      * 
      */
     protected void createBuildFileGenerator(final int timeout) {
-        generator = new BuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", timeout);
+        generator = new TestBuildFileGenerator(antHelper, new VelocityEngine(), "UTF-8", "", timeout);
         writerFactory = new RecordingBuildFileWriterFactory();
         generator.setWriterFactory(writerFactory);
     }
 
     /**
-     * Assert that the expected string can be selected using the given XPath
-     * expression.
+     * Assert that the expected string can be selected using the given XPath expression.
      * 
      * @param expected
      *            expected result.
@@ -277,6 +275,7 @@ public class BuildFileGeneratorTest extends XMLTestCase {
         /**
          * {@inheritDoc}
          */
+        @Override
         public Writer create(final String buildFileName) throws IOException {
             buildFileContent = new StringWriter();
             return buildFileContent;
@@ -284,6 +283,24 @@ public class BuildFileGeneratorTest extends XMLTestCase {
 
         String getContent() {
             return buildFileContent == null ? "" : buildFileContent.toString();
+        }
+    }
+
+    /**
+     * Overwrites the <code>hasJunitInClassPath</code> to return always <code>true</code> for testing purposes.
+     * 
+     * @author Dirk Weigenand
+     */
+    private class TestBuildFileGenerator extends BuildFileGenerator {
+
+        TestBuildFileGenerator(final AntHelper antHelper, final VelocityEngine engine, final String encoding,
+            final String coberturaDir, final int junitTimeOut) {
+            super(antHelper, engine, encoding, coberturaDir, junitTimeOut);
+        }
+
+        @Override
+        protected boolean hasJunitInClassPath(final DevelopmentComponent component) {
+            return true;
         }
     }
 }

@@ -109,12 +109,12 @@ public class BuildFileGenerator {
      *            development component to check for existence of JUnit in classpath.
      * @return <code>true</code> when JUnit is contained in the class path of this DC, <code>false</code> otherwise.
      */
-    protected final boolean hasJunitInClassPath(final DevelopmentComponent component) {
+    protected boolean hasJunitInClassPath(final DevelopmentComponent component) {
         final Set<String> classPath = antHelper.createClassPath(component);
         boolean hasJunitInClassPath = false;
 
-        for (String path : classPath) {
-            final FileFinder finder = new FileFinder(new File(path), "junit*\\.jar");
+        for (final String path : classPath) {
+            final FileFinder finder = new FileFinder(new File(path), "junit.*\\.jar");
 
             if (!finder.find().isEmpty()) {
                 hasJunitInClassPath = true;
@@ -248,6 +248,7 @@ public class BuildFileGenerator {
          * 
          * @throws IOException
          */
+        @Override
         public Writer create(final String buildFileName) throws IOException {
             return new FileWriter(buildFileName);
         }
