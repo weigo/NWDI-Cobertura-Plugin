@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
 
+import net.sf.json.JSONObject;
+
 import org.apache.velocity.app.VelocityEngine;
 import org.arachna.netweaver.dc.types.DevelopmentComponent;
 import org.arachna.netweaver.hudson.nwdi.AntTaskBuilder;
@@ -24,6 +26,7 @@ import org.arachna.netweaver.hudson.nwdi.DCWithJavaSourceAcceptingFilter;
 import org.arachna.netweaver.hudson.nwdi.NWDIBuild;
 import org.arachna.netweaver.hudson.nwdi.NWDIProject;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Builder for development components using Cobertura and JUnit tasks.
@@ -53,13 +56,15 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     private String encoding = "UTF-8";
 
     /**
-     * Create a new instance of a <code>CoberturaBuilder</code> using the given timeout for running the junit ant task.
-     * Use the given encoding for compiling the Java sources before running the tests.
+     * Create a new instance of a <code>CoberturaBuilder</code> using the given
+     * timeout for running the junit ant task. Use the given encoding for
+     * compiling the Java sources before running the tests.
      * 
      * @param junitTimeOut
      *            timeout for junit ant task
      * @param encoding
-     *            to use for compiling Java sources before running JUnit/Cobertura.
+     *            to use for compiling Java sources before running
+     *            JUnit/Cobertura.
      */
     @DataBoundConstructor
     public CoberturaBuilder(final String junitTimeOut, final String encoding) {
@@ -99,7 +104,8 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         boolean result = true;
 
         for (final Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
-            boolean createSuccessful = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
+            final boolean createSuccessful =
+                execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
 
             if (createSuccessful) {
                 result &=
@@ -169,7 +175,8 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
         /**
-         * Create descriptor for NWDI-CheckStyle-Builder and load global configuration data.
+         * Create descriptor for NWDI-CheckStyle-Builder and load global
+         * configuration data.
          */
         public DescriptorImpl() {
             load();
@@ -195,7 +202,8 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         }
 
         /**
-         * Return a {@link ListBoxModel} containing the available character sets.
+         * Return a {@link ListBoxModel} containing the available character
+         * sets.
          * 
          * @return the available character sets.
          */
@@ -207,6 +215,14 @@ public final class CoberturaBuilder extends AntTaskBuilder {
             }
 
             return items;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Builder newInstance(final StaplerRequest req, final JSONObject formData) throws FormException {
+            return new CoberturaBuilder(formData.getString("junitTimeOut"), formData.getString("encoding"));
         }
     }
 }
