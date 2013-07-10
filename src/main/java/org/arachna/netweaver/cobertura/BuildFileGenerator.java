@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -27,6 +28,11 @@ import org.arachna.util.io.FileFinder;
  * @author Dirk Weigenand
  */
 public class BuildFileGenerator {
+    /**
+     * regular expression for matching class path entries against to find a JUnit java archive.
+     */
+    private static final String JUNIT_JAR_REGEXP = "junit.*\\.jar";
+
     /**
      * Helper class for setting up an ant task with class path, source file sets etc.
      */
@@ -58,8 +64,7 @@ public class BuildFileGenerator {
     private IBuildFileWriterFactory writerFactory;
 
     /**
-     * Create a new instance of the ant build file generate using the given {@link AntHelper} and {@link VelocityEngine}
-     * .
+     * Create a new instance of the ant build file generate using the given {@link AntHelper} and {@link VelocityEngine} .
      * 
      * @param antHelper
      *            helper object for ant build file creation
@@ -72,8 +77,8 @@ public class BuildFileGenerator {
      * @param junitTimeOut
      *            timeout for JUnit tests
      */
-    BuildFileGenerator(final AntHelper antHelper, final VelocityEngine engine, final String encoding,
-        final String coberturaDir, final int junitTimeOut) {
+    BuildFileGenerator(final AntHelper antHelper, final VelocityEngine engine, final String encoding, final String coberturaDir,
+        final int junitTimeOut) {
         this.antHelper = antHelper;
         this.engine = engine;
         this.encoding = encoding;
@@ -93,6 +98,7 @@ public class BuildFileGenerator {
         final Map<DevelopmentComponent, String> buildFileNames = new HashMap<DevelopmentComponent, String>();
         for (final DevelopmentComponent component : components) {
             final Collection<String> sources = antHelper.createSourceFileSets(component);
+            sources.addAll(component.getTestSourceFolders());
 
             if (!sources.isEmpty() && hasJunitInClassPath(component)) {
                 buildFileNames.put(component, createBuildFile(component, sources));
@@ -114,12 +120,14 @@ public class BuildFileGenerator {
         boolean hasJunitInClassPath = false;
 
         for (final String path : classPath) {
-            final FileFinder finder = new FileFinder(new File(path), "junit.*\\.jar");
+            final FileFinder finder = new FileFinder(new File(path), JUNIT_JAR_REGEXP);
 
             if (!finder.find().isEmpty()) {
                 hasJunitInClassPath = true;
                 break;
             }
+
+            Logger.getLogger(getClass().getName()).fine(String.format("Could not find a JUnit jar in %s.", path));
         }
 
         return hasJunitInClassPath;
@@ -171,8 +179,8 @@ public class BuildFileGenerator {
      * @throws IOException
      *             when writing the build file fails
      */
-    final void evaluateContext(final DevelopmentComponent component, final Writer writer,
-        final Collection<String> sources) throws IOException {
+    final void evaluateContext(final DevelopmentComponent component, final Writer writer, final Collection<String> sources)
+        throws IOException {
         engine.evaluate(createContext(component, sources), writer, "", getTemplate());
     }
 
@@ -197,8 +205,7 @@ public class BuildFileGenerator {
     final Context createContext(final DevelopmentComponent component, final Collection<String> sources) {
         final Context context = new VelocityContext();
 
-        context.put("vendor", component.getVendor());
-        context.put("component", component.getName().replace('/', '~'));
+        context.put("normalizedComponentName", component.getNormalizedName("~"));
         context.put("componentBase", antHelper.getBaseLocation(component));
         context.put("classpaths", antHelper.createClassPath(component));
         context.put("classesDir", component.getOutputFolder());
@@ -212,6 +219,8 @@ public class BuildFileGenerator {
     }
 
     /**
+     * Set factory for build file writer instances for testing.
+     * 
      * @param writerFactory
      *            the writerFactory to set
      */
