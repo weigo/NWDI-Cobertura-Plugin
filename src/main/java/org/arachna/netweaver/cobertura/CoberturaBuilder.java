@@ -56,15 +56,13 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     private String encoding = "UTF-8";
 
     /**
-     * Create a new instance of a <code>CoberturaBuilder</code> using the given
-     * timeout for running the junit ant task. Use the given encoding for
-     * compiling the Java sources before running the tests.
+     * Create a new instance of a <code>CoberturaBuilder</code> using the given timeout for running the junit ant task. Use the given
+     * encoding for compiling the Java sources before running the tests.
      * 
      * @param junitTimeOut
      *            timeout for junit ant task
      * @param encoding
-     *            to use for compiling Java sources before running
-     *            JUnit/Cobertura.
+     *            to use for compiling Java sources before running JUnit/Cobertura.
      */
     @DataBoundConstructor
     public CoberturaBuilder(final String junitTimeOut, final String encoding) {
@@ -91,10 +89,9 @@ public final class CoberturaBuilder extends AntTaskBuilder {
     @Override
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
         throws InterruptedException, IOException {
-        final VelocityEngine velocityEngine = getVelocityEngine(listener.getLogger());
+        final VelocityEngine velocityEngine = getVelocityEngine();
         final String coberturaDir =
-            String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root.getAbsolutePath()
-                .replace("\\", "/"));
+            String.format("%s/plugins/NWDI-Cobertura-Plugin/WEB-INF/lib", Hudson.getInstance().root.getAbsolutePath().replace("\\", "/"));
         final BuildFileGenerator generator =
             new BuildFileGenerator(getAntHelper(), velocityEngine, getEncoding(), coberturaDir, junitTimeOut);
         final NWDIBuild nwdiBuild = (NWDIBuild)build;
@@ -104,13 +101,10 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         boolean result = true;
 
         for (final Map.Entry<DevelopmentComponent, String> entry : buildFiles.entrySet()) {
-            final boolean createSuccessful =
-                execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
+            final boolean createSuccessful = execute(build, launcher, listener, "", entry.getValue(), getAntProperties());
 
             if (createSuccessful) {
-                result &=
-                    execute(build, launcher, listener, getTargetName(entry.getKey()), entry.getValue(),
-                        getAntProperties());
+                result &= execute(build, launcher, listener, getTargetName(entry.getKey()), entry.getValue(), getAntProperties());
             }
         }
 
@@ -175,8 +169,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
      */
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
         /**
-         * Create descriptor for NWDI-CheckStyle-Builder and load global
-         * configuration data.
+         * Create descriptor for NWDI-CheckStyle-Builder and load global configuration data.
          */
         public DescriptorImpl() {
             load();
@@ -202,8 +195,7 @@ public final class CoberturaBuilder extends AntTaskBuilder {
         }
 
         /**
-         * Return a {@link ListBoxModel} containing the available character
-         * sets.
+         * Return a {@link ListBoxModel} containing the available character sets.
          * 
          * @return the available character sets.
          */
